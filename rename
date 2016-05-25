@@ -61,7 +61,7 @@ for f in `ls $base_file.sql`; do
   git mv $f $new_name
 done
 
-files=`git grep -E "$base_grep" | cut -d: -f1 | uniq`
+files=`git grep -l -E "$base_grep"`
 if [ -z "$files" ]; then
   echo "WARNING! No files found with pattern $base_grep"
 else
