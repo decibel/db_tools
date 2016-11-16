@@ -23,6 +23,8 @@ where options are
   -b <branch>   branch to use
         (defaults to '$DEFAULT_branch_push' when commend is 'push', '$DEFAULT_branch_other' otherwise)
 
+  -n      (no-op) don't actually do anything, just display what would have been run
+
   -r <remote>   remote to use
         (defaults to '$DEFAULT_remote_push' when commend is 'push', '$DEFAULT_remote_other'
         otherwise)
@@ -33,10 +35,11 @@ _EOF_
 
 branch=''
 remote=''
-while getopts b:r: arg
+while getopts b:nr: arg
 do
   case "$arg" in
     b)  branch="$OPTARG";;
+    n)  noop=true;;
     r)  remote="$OPTARG";;
     h)
       usage
@@ -80,6 +83,11 @@ top=`git rev-parse --show-toplevel` || die 2 'FATAL: Unable to determine top-lev
 
 cd $top || die 2 "Unable to cd to $top"
 
-git subtree $command $@ -P db/db_tools $remote $branch
+if [ -z "$noop" ]; then
+  git subtree $command $@ -P db/db_tools $remote $branch
+else
+  echo "Command that would have been run:"
+  echo "  git subtree $command $@ -P db/db_tools $remote $branch"
+fi
 
 # vi: expandtab ts=2 sw=2
