@@ -1,0 +1,5 @@
+schema=$1
+read_role=$2
+shift 2
+
+sqitch add -n "Create schema $schema" -t SCHEMA -s schema="$schema" -s read_role="$read_role" "SCHEMA.$schema" $@
