@@ -1,0 +1,71 @@
+#!/bin/bash
+
+BASEDIR=`dirname $0`
+if ! . $BASEDIR/lib/util.sh; then
+  echo "FATAL: error sourcing $BASEDIR/lib/util.sh" 1>&2
+  exit 99
+fi
+
+DEPS_CONF=$BASEDIR/deps.conf
+
+usage() {
+  cat << _EOF_
+Usage:
+
+$0 [options] database_name [psql options]
+
+where options are
+
+  -x options    specify options for pgxn
+  -h      display this message
+_EOF_
+}
+
+while getopts hx: arg
+do
+  case "$arg" in
+    x)  PGXN_OPTS="$OPTARG";;
+    h)
+      usage
+      exit 0
+      ;;
+    ?)
+      usage
+      exit 1
+      ;;
+  esac
+done
+if [ $OPTIND -gt 1 ]; then
+  shift $(($OPTIND-1))
+fi
+
+if [ -z ${PGCONFIG+x} ]; then
+  PGCONFIG=`which pg_config`
+fi
+[ -n "$PGCONFIG" ] || die 1 "Unable to find pg_config; add it to PATH or set PGCONFIG"
+
+# PGXN
+if [ -z ${PGXN+x} ]; then
+  PGXN=`which pgxn`
+fi
+[ -n "$PGXN" ] || die 1 "Unable to find pgxn; add it to PATH or set \$PGXN to it's location.
+
+PGXN install instructions are at http://pgxnclient.projects.pgfoundry.org/install.html
+
+or simply do
+
+sudo easy_install pgxnclient"
+
+
+EXTDIR=`$PGCONFIG --sharedir`/extension || die 1 "$PGCONFIG returned $?"
+
+file_sanity $DEPS_CONF || exit $?
+
+# Note: add "IFS=''" before the read belowe to preserve whitespace
+# || [ -n "$LINE" ] is necessary to process the last line if it's not terminated with EOF
+while read -r LINE || [ -n "$LINE" ]; do
+  # $LINE is inntentionally not quoted
+  pgxn_install $LINE || die $? "pgxn_install returned $?"
+done <"$DEPS_CONF"
+
+# vi: expandtab ts=2 sw=2

@@ -61,6 +61,13 @@ die() {
   exit $return
 }
 
+file_sanity() {
+  for file in "$@"; do
+    [ -e "$file" ] || die 1 "error: file '$file' does not exist"
+    [ -r "$file" ] || die 1 "error: file '$file' is not readable"
+  done
+}
+
 db_exists() {
     local exists
     exists=`psql -qtc "SELECT EXISTS( SELECT 1 FROM pg_database WHERE datname = '$dbname' )" postgres $@ | tr -d ' '`
@@ -87,11 +94,12 @@ pgxn_install() {
     fi
 
     if [ -n "$version" ]; then
+        # It's tempting to allow >= and what-not, but that will break version checking (see below)
         namever="$name=$version"
     else
         namever=$name
     fi
-    debug 7 "pgxn_install(): name=$name version=$version options=$options"
+    debug_vars 7 name version namever options
 
 
     # Bounce out if already installed and same version
@@ -102,7 +110,7 @@ pgxn_install() {
         [ -z "$version" ] && return
 
         instver=`grep default_version $control | cut -d"'" -f2`
-        debug 9 "instver=$instver"
+        debug_vars 9 instver
         [ -n "$instver" ] || die 4 $'\nunable to determine installed version of $name'
 
         # Return if it matches
