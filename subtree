@@ -1,22 +1,85 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
-[ $# -ge 1 ] || exit 1
+BASEDIR=`dirname $0`
+if ! . $BASEDIR/lib/util.sh; then
+  echo "FATAL: error sourcing $BASEDIR/lib/util.sh" 1>&2
+  exit 99
+fi
+debug 19 "Arguments: $@"
 
-if [ "$1" == "-r" ]; then
-  remote=$2
-  shift 2
-else
-  if [ "$1" == "push" ]; then
-    remote=st-db_tools-up
+DEFAULT_branch_push='master'
+DEFAULT_branch_other='stable'
+DEFAULT_remote_push='st-db_tools-up'
+DEFAULT_remote_other='st-db_tools'
+
+usage() {
+  cat << _EOF_
+Usage:
+
+$0 [options] command
+
+where options are
+
+  -b <branch>   branch to use
+        (defaults to '$DEFAULT_branch_push' when commend is 'push', '$DEFAULT_branch_other' otherwise)
+
+  -r <remote>   remote to use
+        (defaults to '$DEFAULT_remote_push' when commend is 'push', '$DEFAULT_remote_other'
+        otherwise)
+
+  -h      display this message
+_EOF_
+}
+
+branch=''
+remote=''
+while getopts b:r: arg
+do
+  case "$arg" in
+    b)  branch="$OPTARG";;
+    r)  remote="$OPTARG";;
+    h)
+      usage
+      exit 0
+      ;;
+    ?)
+      usage
+      exit 1
+      ;;
+  esac
+done
+if [ $OPTIND -gt 1 ]; then
+  shift $(($OPTIND-1))
+fi
+
+if [ $# -lt 1 ]; then
+  error "ERROR: Must specify command"
+  usage
+  exit 1
+fi
+command=$1
+shift
+
+if [ -z "$branch" ]; then
+  if [ "$command" == "push" ]; then
+    branch="$DEFAULT_branch_push"
   else
-    remote=st-db_tools
+    branch="$DEFAULT_branch_other"
+  fi
+fi
+if [ -z "$remote" ]; then
+  if [ "$command" == "push" ]; then
+    remote="$DEFAULT_remote_push"
+  else
+    remote="$DEFAULT_remote_other"
   fi
 fi
 
-[ -n `git rev-parse --show-toplevel` ] || exit 2
+top=`git rev-parse --show-toplevel` || die 2 'FATAL: Unable to determine top-level git directory'
+[ -n '$top' ] || die 2 'FATAL: Unable to determine top-level git directory'
 
-cd `git rev-parse --show-toplevel`
+cd $top || die 2 "Unable to cd to $top"
 
-git subtree $@ -P db/db_tools $remote master
+git subtree $command $@ -P db/db_tools $remote $branch
 
 # vi: expandtab ts=2 sw=2
