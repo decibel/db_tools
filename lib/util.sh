@@ -4,6 +4,8 @@ debug() {
   local level=$1
   shift
   if [ $level -le $DEBUG ] ; then
+    local oldIFS
+    oldIFS=$IFS
     unset IFS
     # Output debug level if it's over threashold
     if [ $DEBUG -ge ${DEBUGEXTRA:-10} ]; then
@@ -11,6 +13,7 @@ debug() {
     else
       echo "$@" 1>&2
     fi
+    IFS=$oldIFS
   fi
 }
 
